@@ -32,4 +32,4 @@ with st.expander("See source code"):
             add_legend=True,
         )
 
-m.to_streamlit(height=100)
+m.to_streamlit(height=500)
