@@ -5,7 +5,7 @@ st.set_page_config(layout="wide")
 
 # Customize the sidebar
 markdown = """
-Application for geospatial acoustic visualization, powered by Coeficiência Acústica
+Application for geospatial acoustic visualization, powered by Coeficiência Acústica:
 <https://www.coeficiencia.com.br>
 """
 
@@ -20,6 +20,8 @@ st.title("Geospatial Acoustics Applications")
 st.markdown(
     """
     Application for geospatial acoustic visualization and analysis. Explore interactive maps to assess noise levels in space and time, integrate environmental layers, and generate analytical products to support decision-making. The application will also be used to visualize and log complaints of noise pollution.
+    
+    Powered by Coeficiência Acústica: <https://www.coeficiencia.com.br>
     """
 )
 
