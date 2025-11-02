@@ -17,8 +17,8 @@ st.title("Heatmap")
 
 with st.expander("See source code"):
     with st.echo():
-        filepath =  "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
-        m = leafmap.Map(center=[-23.415367,-51.931343], zoom=4)
+        filepath = "https://raw.githubusercontent.com/giswqs/leafmap/master/examples/data/us_cities.csv"
+        m = leafmap.Map(center=[40, -100], zoom=4)
         m.add_heatmap(
             filepath,
             latitude="latitude",
@@ -27,4 +27,4 @@ with st.expander("See source code"):
             name="Heat map",
             radius=20,
         )
-m.to_streamlit(height=500)
+m.to_streamlit(height=700)
