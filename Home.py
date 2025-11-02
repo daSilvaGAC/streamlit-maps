@@ -5,8 +5,8 @@ st.set_page_config(layout="wide")
 
 # Customize the sidebar
 markdown = """
-A Streamlit map template
-<https://github.com/opengeos/streamlit-map-template>
+Application for geospatial acoustic visualization, powered by Coeficiência Acústica
+<https://www.coeficiencia.com.br>
 """
 
 st.sidebar.title("About")
