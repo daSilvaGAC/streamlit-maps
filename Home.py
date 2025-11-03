@@ -37,6 +37,29 @@ st.markdown(
 
 # st.markdown(markdown)
 
-m = leafmap.Map(minimap_control=True)
-m.add_basemap("OpenTopoMap")
+st.set_page_config(layout="wide")
+
+markdown = """
+Denúncias de Poluição Sonora em Maringá 2020-2023
+"""
+
+st.sidebar.title("Sobre")
+st.sidebar.info(markdown)
+logo = "https://i.imgur.com/UbOXYAU.png"
+st.sidebar.image(logo)
+
+st.title("Noise Complaints Clusters")
+
+m = leafmap.Map(center=[-23.415367, -51.931343], zoom=12)
+denuncias = "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
+
+m.add_points_from_xy(
+    denuncias,
+    x="longitude",
+    y="latitude",
+    icon_names=["gear", "map", "leaf", "globe"],
+    spin=True,
+    add_legend=True,
+)
+
 m.to_streamlit(height=500)
