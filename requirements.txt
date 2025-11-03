@@ -3,3 +3,5 @@ geopandas
 leafmap
 owslib
 streamlit
+scikit-learn
+matplotlib
