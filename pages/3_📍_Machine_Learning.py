@@ -7,12 +7,13 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 import folium
+import altair as alt
 from sklearn.cluster import KMeans, OPTICS
-import matplotlib.pyplot as plt
 
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 st.set_page_config(layout="wide")
+alt.data_transformers.disable_max_rows()
 
 markdown = """
 Denúncias de Poluição Sonora em Maringá 2020-2023
@@ -331,52 +332,83 @@ st.markdown(
     "Cada centróide representa a mediana de latitude/longitude de um cluster detectado pelo OPTICS. "
     "A coluna de cor indica como o agrupamento aparece no mapa e serve de legenda."
 )
-centroids_table = centroids_display.copy()
-centroids_table["Cluster OPTICS"] = centroids_table["cluster"] + 1
-centroids_table["Cluster K-Means predominante"] = centroids_table["cluster_kmeans"]
-centroids_table.loc[centroids_table["Cluster K-Means predominante"] >= 0, "Cluster K-Means predominante"] += 1
-centroids_table.loc[centroids_table["Cluster K-Means predominante"] < 0, "Cluster K-Means predominante"] = None
-centroids_table = centroids_table.rename(
-    columns={
-        "quantidade": "Total de denúncias (OPTICS)",
-        "cor_legenda": "Cor (legenda)",
-        "latitude": "Latitude",
-        "longitude": "Longitude",
-    }
-)[
-    [
-        "Cluster OPTICS",
-        "Cluster K-Means predominante",
-        "Total de denúncias (OPTICS)",
-        "Latitude",
-        "Longitude",
-        "Cor (legenda)",
-    ]
-]
-st.dataframe(centroids_table, use_container_width=True)
+optics_chart_data = centroids_display.copy()
+optics_chart_data["Cluster OPTICS"] = optics_chart_data["cluster"] + 1
+optics_chart_data["Cluster K-Means predominante"] = optics_chart_data["cluster_kmeans"].apply(
+    lambda v: f"Cluster {int(v) + 1}" if v >= 0 else "Sem K-Means predominante"
+)
+optics_chart_data["cluster_optics_label"] = optics_chart_data["Cluster OPTICS"].astype(str)
+optics_color_domain = list(dict.fromkeys(optics_chart_data["Cluster K-Means predominante"]))
+optics_color_range = []
+for label in optics_color_domain:
+    if label.startswith("Cluster "):
+        cid = int(label.split()[1]) - 1
+        optics_color_range.append(cluster_colors.get(cid, ("#1F2937", "#9CA3AF"))[1])
+    else:
+        optics_color_range.append("#9CA3AF")
+
+optics_chart = (
+    alt.Chart(optics_chart_data)
+    .mark_bar()
+    .encode(
+        x=alt.X("cluster_optics_label:N", title="Cluster OPTICS", sort=None),
+        y=alt.Y("quantidade:Q", title="Denúncias (OPTICS)"),
+        color=alt.Color(
+            "Cluster K-Means predominante:N",
+            scale=alt.Scale(domain=optics_color_domain, range=optics_color_range),
+        ),
+        tooltip=[
+            alt.Tooltip("Cluster OPTICS:N", title="Cluster OPTICS"),
+            alt.Tooltip("Cluster K-Means predominante:N", title="K-Means predominante"),
+            alt.Tooltip("quantidade:Q", title="Denúncias (OPTICS)", format=",.0f"),
+            alt.Tooltip("latitude:Q", title="Latitude", format=".5f"),
+            alt.Tooltip("longitude:Q", title="Longitude", format=".5f"),
+        ],
+    )
+    .properties(height=320)
+)
+st.altair_chart(optics_chart.interactive(), use_container_width=True)
 
 st.markdown("### Centróides identificados pelo K-Means")
 st.markdown(
     "Cada centróide do K-Means representa o centro geométrico de um agrupamento "
     "após a remoção de ruídos, usando as cores do próprio cluster."
 )
-kmeans_table = cluster_centroids.copy()
-kmeans_table["Cluster K-Means"] = kmeans_table["kmeans_cluster"] + 1
-kmeans_table = kmeans_table.rename(
-    columns={
-        "quantidade": "Total de denúncias (K-Means)",
-        "latitude": "Latitude",
-        "longitude": "Longitude",
-    }
-)[
-    [
-        "Cluster K-Means",
-        "Total de denúncias (K-Means)",
-        "Latitude",
-        "Longitude",
-    ]
-]
-st.dataframe(kmeans_table, use_container_width=True)
+kmeans_chart_data = cluster_centroids.copy()
+kmeans_chart_data["Cluster K-Means"] = kmeans_chart_data["kmeans_cluster"] + 1
+kmeans_chart_data["cluster_label"] = kmeans_chart_data["Cluster K-Means"].astype(str)
+kmeans_color_domain = list(dict.fromkeys(kmeans_chart_data["cluster_label"].tolist()))
+color_lookup = {
+    label: cluster_colors.get(int(label) - 1, ("#1F2937", "#9CA3AF"))[1]
+    for label in kmeans_color_domain
+}
+kmeans_color_range = [color_lookup[label] for label in kmeans_color_domain]
+color_scale = alt.Scale(domain=kmeans_color_domain, range=kmeans_color_range)
+
+if kmeans_chart_data.empty:
+    st.info("Sem centróides K-Means para exibir com os parâmetros atuais.")
+else:
+    kmeans_chart = (
+        alt.Chart(kmeans_chart_data)
+        .mark_bar()
+        .encode(
+            x=alt.X("cluster_label:N", title="Cluster K-Means", sort=None),
+            y=alt.Y("quantidade:Q", title="Denúncias (K-Means)"),
+            color=alt.Color(
+                "cluster_label:N",
+                title="Cluster K-Means",
+                scale=color_scale,
+            ),
+            tooltip=[
+                alt.Tooltip("Cluster K-Means:N", title="Cluster K-Means"),
+                alt.Tooltip("quantidade:Q", title="Denúncias (K-Means)", format=",.0f"),
+                alt.Tooltip("latitude:Q", title="Latitude", format=".5f"),
+                alt.Tooltip("longitude:Q", title="Longitude", format=".5f"),
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(kmeans_chart.interactive(), use_container_width=True)
 
 st.markdown("### O que é o K-Means?")
 st.markdown(
@@ -394,7 +426,24 @@ st.write(
     f"Inércia final (soma das distâncias quadráticas intra-cluster): "
     f"**{inertia:,.2f}**"
 )
-st.dataframe(cluster_counts, use_container_width=True)
+cluster_counts_chart_data = cluster_counts.copy()
+cluster_counts_chart_data["cluster_label"] = (
+    "Cluster " + (cluster_counts_chart_data["cluster"] + 1).astype(str)
+)
+cluster_counts_chart = (
+    alt.Chart(cluster_counts_chart_data)
+    .mark_bar(color="#10B981")
+    .encode(
+        x=alt.X("cluster_label:N", title="Cluster K-Means", sort=None),
+        y=alt.Y("quantidade:Q", title="Denúncias"),
+        tooltip=[
+            alt.Tooltip("cluster_label:N", title="Cluster K-Means"),
+            alt.Tooltip("quantidade:Q", title="Denúncias", format=",.0f"),
+        ],
+    )
+    .properties(height=320)
+)
+st.altair_chart(cluster_counts_chart.interactive(), use_container_width=True)
 
 st.markdown("### Como interpretar os resultados")
 st.markdown(
@@ -407,14 +456,40 @@ st.markdown(
 
 wcss = compute_wcss(df_clean, max_clusters=10)
 ks = list(range(1, len(wcss) + 1))
-fig, ax = plt.subplots(figsize=(6, 4))
-ax.plot(ks, wcss, marker="o")
-ax.set_xlabel("Número de clusters")
-ax.set_ylabel("WCSS")
-ax.set_title("Método do cotovelo (WCSS por K)")
-ax.grid(True, linestyle="--", alpha=0.5)
+wcss_chart_data = pd.DataFrame(
+    {
+        "Clusters": ks,
+        "WCSS": wcss,
+    }
+)
+
+wcss_line = (
+    alt.Chart(wcss_chart_data)
+    .mark_line(color="#3B82F6")
+    .encode(
+        x=alt.X("Clusters:O", title="Número de clusters"),
+        y=alt.Y("WCSS:Q", title="WCSS"),
+    )
+)
+
+wcss_points = (
+    alt.Chart(wcss_chart_data)
+    .mark_point(size=80)
+    .encode(
+        x=alt.X("Clusters:O"),
+        y=alt.Y("WCSS:Q"),
+        color=alt.value("#3B82F6"),
+        tooltip=[
+            alt.Tooltip("Clusters:O", title="Clusters"),
+            alt.Tooltip("WCSS:Q", title="WCSS", format=",.0f"),
+        ],
+    )
+)
+
+wcss_chart = (wcss_line + wcss_points).properties(height=360)
+
 st.markdown(
     "O gráfico do método do cotovelo ajuda a encontrar um número adequado de clusters: "
     "procure pelo ponto onde a queda de WCSS começa a se estabilizar."
 )
-st.pyplot(fig)
+st.altair_chart(wcss_chart.interactive(), use_container_width=True)
