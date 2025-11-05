@@ -210,7 +210,7 @@ elif hour_range is not None:
 
 filtered = filtered.sort_values("DataInclusao", ascending=False)
 
-st.title("Interactive Map")
+st.title("Mapa Interativo de Denúncias de Poluição Sonora em Maringá")
 
 st.caption(
     "Explore as denúncias geocodificadas em Maringá utilizando os filtros na barra lateral."
