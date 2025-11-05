@@ -5,11 +5,13 @@ st.set_page_config(layout="wide")
 
 # Customize the sidebar
 markdown = """
-Application for geospatial acoustic visualization, powered by Coeficiência Acústica:
+Aplicação web para visualização e anáise geoespacial de denúncias de poluição sonora.
+
+Powered by Coeficiência Acústica:
 <https://www.coeficiencia.com.br>
 """
 
-st.sidebar.title("About")
+st.sidebar.title("Sobre")
 st.sidebar.info(markdown)
 logo = "https://i.imgur.com/UbOXYAU.png"
 st.sidebar.image(logo)
@@ -19,8 +21,7 @@ st.title("Geospatial Acoustics Applications")
 
 st.markdown(
     """
-    Application for geospatial acoustic visualization and analysis. Explore interactive maps to assess noise levels in space and time, integrate environmental layers, and generate analytical products to support decision-making. The application will also be used to visualize and log complaints of noise pollution.
-    
+    A Aplicação web para visualização e anáise geoespacial de denúncias de poluição sonora. Explore mapas interativos para avaliar denúncias de ruído no espaço e no tempo, integrar camadas ambientais e gerar produtos analíticos para apoiar a tomada de decisões. A aplicação também será utilizada para visualizar e registrar denúncias de poluição sonora.
     Powered by Coeficiência Acústica: <https://www.coeficiencia.com.br>
     """
 )
@@ -39,16 +40,7 @@ st.markdown(
 
 st.set_page_config(layout="wide")
 
-markdown = """
-Denúncias de Poluição Sonora em Maringá 2020-2023
-"""
-
-st.sidebar.title("Sobre")
-st.sidebar.info(markdown)
-logo = "https://i.imgur.com/UbOXYAU.png"
-st.sidebar.image(logo)
-
-st.title("Noise Complaints Clusters")
+st.title("Clusters de Denúncias de Ruído em Maringá. Dados de 2021 a 2023")
 
 m = leafmap.Map(center=[-23.415367, -51.931343], zoom=12)
 denuncias = "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
