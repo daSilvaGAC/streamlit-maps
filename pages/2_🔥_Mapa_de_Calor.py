@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pandas as pd
 import streamlit as st
@@ -16,13 +17,29 @@ st.sidebar.image(logo)
 
 st.title("Mapa de Calor das Denúncias")
 
-data_path = Path(__file__).resolve().parent.parent / "mga_denuncias_20-23.csv"
-df = pd.read_csv(
-    data_path,
-    encoding="utf-8-sig",
-    parse_dates=["DataInclusao"],
-)
+data_path = Path(__file__).resolve().parent.parent / "mga_denuncias_20-23.geojson"
+with open(data_path, encoding="utf-8") as f:
+    geojson = json.load(f)
+
+records = []
+for feature in geojson.get("features", []):
+    properties = feature.get("properties", {}) or {}
+    geometry = feature.get("geometry", {}) or {}
+    coordinates = geometry.get("coordinates", [])
+    if not coordinates or len(coordinates) < 2:
+        continue
+    record = properties.copy()
+    record["longitude"] = coordinates[0]
+    record["latitude"] = coordinates[1]
+    records.append(record)
+
+df = pd.DataFrame(records)
+df["DataInclusao"] = pd.to_datetime(df["DataInclusao"], errors="coerce")
 df = df.dropna(subset=["DataInclusao", "latitude", "longitude"]).copy()
+if df.empty:
+    st.warning("Nenhuma denúncia encontrada no arquivo GeoJSON fornecido.")
+    st.stop()
+
 df = df.sort_values("DataInclusao")
 df["latitude"] = df["latitude"].astype(float)
 df["longitude"] = df["longitude"].astype(float)
