@@ -17,7 +17,7 @@ logo = "https://i.imgur.com/UbOXYAU.png"
 st.sidebar.image(logo)
 
 # Customize page title
-st.title("Geospatial Acoustics Applications")
+st.title("Aplicação para análise geoespacial de denúncias de poluição sonora")
 
 st.markdown(
     """
