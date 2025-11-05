@@ -18,7 +18,7 @@ with st.expander("See source code"):
     with st.echo():
         
         m = leafmap.Map(center=[-23.415367,-51.931343], zoom=12)
-        denuncias = "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
+        denuncias = "mga_denuncias_20-23.csv"
         ## regions = "https://raw.githubusercontent.com/giswqs/leafmap/master/examples/data/us_regions.geojson"
 
         ## m.add_geojson(regions, layer_name="US Regions")

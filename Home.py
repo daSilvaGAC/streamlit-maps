@@ -51,7 +51,7 @@ st.sidebar.image(logo)
 st.title("Noise Complaints Clusters")
 
 m = leafmap.Map(center=[-23.415367, -51.931343], zoom=12)
-denuncias = "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
+denuncias = "mga_denuncias_20-23.csv"
 
 m.add_points_from_xy(
     denuncias,
