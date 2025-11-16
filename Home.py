@@ -1,3 +1,7 @@
+from pathlib import Path
+import json
+
+import pandas as pd
 import streamlit as st
 import leafmap.foliumap as leafmap
 
@@ -42,16 +46,51 @@ st.set_page_config(layout="wide")
 
 st.title("Clusters de Denúncias de Ruído em Maringá. Dados de 2021 a 2023")
 
-m = leafmap.Map(center=[-23.415367, -51.931343], zoom=12)
-denuncias = "https://raw.githubusercontent.com/daSilvaGAC/streamlit-maps/refs/heads/main/mga_denuncias_20-23.csv"
 
-m.add_points_from_xy(
-    denuncias,
-    x="longitude",
-    y="latitude",
-    icon_names=["gear", "map", "leaf", "globe"],
-    spin=True,
-    add_legend=True,
-)
+@st.cache_data(show_spinner=False)
+def load_geojson() -> pd.DataFrame:
+    path = Path(__file__).resolve().parent / "mga_denuncias_20-23.geojson"
+    if not path.exists():
+        st.error("Arquivo mga_denuncias_20-23.geojson não encontrado.")
+        return pd.DataFrame()
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
 
-m.to_streamlit(height=500)
+    records = []
+    for feature in data.get("features", []):
+        props = feature.get("properties", {}) or {}
+        coords = feature.get("geometry", {}).get("coordinates", [])
+        if len(coords) >= 2:
+            props["longitude"] = coords[0]
+            props["latitude"] = coords[1]
+            records.append(props)
+    df = pd.DataFrame(records)
+    if df.empty:
+        return df
+    df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
+    df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
+    df = df.dropna(subset=["latitude", "longitude"]).copy()
+    df["DataInclusao"] = pd.to_datetime(
+        df.get("DataInclusao_BR", df.get("DataInclusao")),
+        format="%H:%M:%S %d-%m-%Y",
+        errors="coerce",
+        dayfirst=True,
+    )
+    return df
+
+
+df = load_geojson()
+if df.empty:
+    st.warning("Não há dados para exibir no mapa.")
+else:
+    m = leafmap.Map(center=[-23.415367, -51.931343], zoom=12)
+    m.add_points_from_xy(
+        df,
+        x="longitude",
+        y="latitude",
+        popup=["Protocolo", "DataInclusao", "Descrição"],
+        icon_names=["gear", "map", "leaf", "globe"],
+        spin=True,
+        add_legend=True,
+    )
+    m.to_streamlit(height=500)

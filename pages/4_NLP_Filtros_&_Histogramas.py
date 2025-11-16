@@ -336,11 +336,15 @@ date_range = st.sidebar.date_input(
     max_value=max_date,
     format="DD/MM/YYYY",
 )
-if isinstance(date_range, tuple):
-    start_date, end_date = date_range
+if isinstance(date_range, (tuple, list)):
+    if len(date_range) == 0:
+        start_date = end_date = min_date
+    elif len(date_range) == 1:
+        start_date = end_date = date_range[0]
+    else:
+        start_date, end_date = date_range[:2]
 else:
-    start_date = date_range
-    end_date = date_range
+    start_date = end_date = date_range if date_range else min_date
 
 night_mode = st.sidebar.checkbox(
     "Período noturno (20h às 8h)", value=False, help="Seleciona automaticamente o período entre 20:00 e 08:00."
