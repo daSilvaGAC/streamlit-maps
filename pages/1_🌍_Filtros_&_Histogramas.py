@@ -21,6 +21,21 @@ Powered by Coeficiência Acústica:
 st.sidebar.header("Filtros")
 
 
+def _extract_bairro(value: str) -> str:
+    if not value:
+        return ""
+    value = str(value)
+    if "-" in value:
+        parts = value.split("-", 1)
+        if len(parts) > 1:
+            remainder = parts[1].strip()
+            if remainder:
+                bairro = remainder.split(",", 1)[0].strip()
+                if bairro:
+                    return bairro
+    return ""
+
+
 @st.cache_data(show_spinner=False)
 def load_data() -> pd.DataFrame:
     path = Path(__file__).resolve().parent.parent / "mga_denuncias_20-23.geojson"
@@ -87,6 +102,19 @@ def load_data() -> pd.DataFrame:
     df["hora_label"] = df["hora"].apply(
         lambda h: f"{int(h):02d}h" if pd.notna(h) else None
     )
+
+    if "endereco_formatado" not in df.columns:
+        df["endereco_formatado"] = ""
+    df["endereco_formatado"] = df["endereco_formatado"].fillna("").astype(str)
+
+    if "bairro_formatado" not in df.columns:
+        df["bairro_formatado"] = df["endereco_formatado"].apply(_extract_bairro)
+    df["bairro_formatado"] = (
+        df["bairro_formatado"]
+        .fillna(df.get("Bairro"))
+        .fillna("")
+        .astype(str)
+    )
     return df
 
 
@@ -96,6 +124,10 @@ df = load_data()
 if df.empty:
     st.warning("Nenhuma denúncia encontrada no arquivo GeoJSON fornecido.")
     st.stop()
+
+bairro_choices = sorted(
+    {valor for valor in df.get("bairro_formatado", pd.Series(dtype="object")) if valor}
+)
 
 min_date = df["data"].min()
 max_date = df["data"].max()
@@ -139,7 +171,7 @@ search_description = st.sidebar.text_input(
 
 search_bairro = st.sidebar.text_input(
     "Buscar bairro",
-    placeholder="Ex.: Zona 3",
+    placeholder="Ex.: Zona 8",
 )
 
 st.sidebar.markdown("---")
@@ -148,7 +180,7 @@ chart_dimension = st.sidebar.selectbox(
     options=[
         "endereco_formatado",
         "hora_label",
-        "Bairro",
+        "bairro_formatado",
         "mes_pt",
         "dia_semana_pt",
         "endereco_formatado",
@@ -159,13 +191,13 @@ chart_dimension = st.sidebar.selectbox(
 pareto_mode = st.sidebar.radio(
     "Critério do gráfico (Pareto)",
     options=["Top N", "Acumulado (%)"],
-    index=0,
+    index=1,
 )
 if pareto_mode == "Top N":
     top_n = st.sidebar.slider("Quantidade (Top N)", 3, 30, 15, 1)
     pct_cutoff = None
 else:
-    pct_cutoff = st.sidebar.slider("Percentual acumulado (%)", 10, 100, 80, 5)
+    pct_cutoff = st.sidebar.slider("Percentual acumulado (%)", 10, 100, 100, 5)
     top_n = None
 
 
@@ -195,7 +227,7 @@ if pattern:
     ]
 if search_bairro:
     filtered = filtered[
-        filtered.get("Bairro", "")
+        filtered.get("bairro_formatado", "")
         .astype(str)
         .str.contains(search_bairro, case=False, na=False)
     ]
@@ -343,6 +375,7 @@ with table_col:
             "DataInclusao",
             "Descrição",
             "endereco_formatado",
+            "bairro_formatado",
         ]
         display_columns = [col for col in display_columns if col in map_data.columns]
         if not display_columns:
@@ -350,8 +383,8 @@ with table_col:
         else:
             st.dataframe(
                 map_data[display_columns].head(500),
-                use_container_width=True,
                 hide_index=True,
+                width="stretch",
             )
             st.caption("Mostrando até 500 registros mais recentes.")
 
@@ -427,7 +460,7 @@ else:
         .properties(height=380)
     )
 
-    st.altair_chart(histogram, use_container_width=True)
+    st.altair_chart(histogram, width="stretch")
     st.caption(
         "O gráfico combina a frequência absoluta (barras) com o percentual acumulado (linha) para análise de Pareto."
     )
@@ -449,4 +482,4 @@ else:
             "percentual_acumulado": "% Acumulado",
         }
     )
-    st.dataframe(resumo, use_container_width=True, hide_index=True)
+    st.dataframe(resumo, hide_index=True, width="stretch")
