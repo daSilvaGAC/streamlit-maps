@@ -522,9 +522,8 @@ elif hour_range is not None:
 filtered = filtered.sort_values("DataInclusao", ascending=False)
 
 st.title("Mapa Interativo de Denúncias de Poluição Sonora em Maringá")
-
 st.caption(
-    "Explore as denúncias geocodificadas em Maringá utilizando os filtros na barra lateral."
+    "Utilize os filtros para investigar padrões de ruído. Explore os gráficos e crie regras personalizadas para destacar combinações relevantes."
 )
 
 
@@ -595,7 +594,7 @@ if chart_ready and restrict_map and categories_display:
         map_data[dimension_col].fillna("Não informado").astype(str).isin(categories_display)
     ]
 
-map_col, table_col = st.columns((3, 2))
+map_col = st.container()
 
 with map_col:
     options = list(leafmap.basemaps.keys())
@@ -647,32 +646,32 @@ with map_col:
                 layer_name="Denúncias",
             )
 
-    m.to_streamlit(height=620)
+    m.to_streamlit(height=720)
 
-with table_col:
-    st.subheader("Detalhes das denúncias exibidas no mapa")
-    if map_data.empty:
-        st.info("Sem dados para exibir com os filtros atuais.")
+st.subheader("Detalhes das denúncias exibidas no mapa")
+if map_data.empty:
+    st.info("Sem dados para exibir com os filtros atuais.")
+else:
+    display_columns = [
+        "Protocolo",
+        "DataInclusao",
+        "Descrição",
+        "endereco_formatado",
+        "bairro_formatado",
+        "Tipo de Fonte",
+        "fonte_contexto",
+        "fonte_audio",
+        "fonte_horario",
+        "custom_rules_label",
+    ]
+    display_columns = [col for col in display_columns if col in map_data.columns]
+    if not display_columns:
+        st.info("As colunas esperadas não estão disponíveis nos dados.")
     else:
-        display_columns = [
-            "Protocolo",
-            "DataInclusao",
-            "Descrição",
-            "endereco_formatado",
-            "bairro_formatado",
-            "Tipo de Fonte",
-            "fonte_contexto",
-            "fonte_audio",
-            "fonte_horario",
-            "custom_rules_label",
-        ]
-        display_columns = [col for col in display_columns if col in map_data.columns]
-        if not display_columns:
-            st.info("As colunas esperadas não estão disponíveis nos dados.")
-        else:
+        with st.expander("Visualizar tabela (até 500 registros)", expanded=False):
             st.dataframe(
                 map_data[display_columns].head(500),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st.caption("Mostrando até 500 registros mais recentes.")
@@ -771,7 +770,8 @@ else:
             "percentual_acumulado": "% Acumulado",
         }
     )
-    st.dataframe(resumo, use_container_width=True, hide_index=True)
+    with st.expander("Tabela do Pareto (frequência e acumulado)", expanded=False):
+        st.dataframe(resumo, width="stretch", hide_index=True)
 
 st.markdown("## Classificações NLP")
 render_pareto_chart(filtered, "Tipo de Fonte", "Pareto - Tipo de Fonte")
@@ -779,6 +779,9 @@ render_pareto_chart(filtered, "fonte_contexto", "Pareto - Contexto (fonte_contex
 render_pareto_chart(filtered, "fonte_audio", "Pareto - Modalidade (fonte_audio)")
 
 st.markdown("### Cruzamento contexto × áudio")
+st.info(
+    "Use este gráfico para cruzar locais (contextos) com tipos de som (modalidades) e descobrir combinações recorrentes."
+)
 if filtered.empty:
     st.info("Sem dados para gerar o cruzamento com os filtros atuais.")
 else:
@@ -808,9 +811,13 @@ else:
             .properties(height=360)
         )
         st.altair_chart(heatmap, width="stretch")
-        st.dataframe(cross_df, use_container_width=True, hide_index=True)
+        with st.expander("Tabela completa de cruzamentos", expanded=False):
+            st.dataframe(cross_df, width="stretch", hide_index=True)
 
 st.markdown("## Regras personalizadas (tokens + contexto)")
+st.info(
+    "Escolha contextos, modalidades, tokens e horários para criar etiquetas próprias. Qualquer denúncia que contenha todos os itens configurados receberá a regra."
+)
 with st.expander("Criar/editar regras"):
     with st.form("custom_rule_form", clear_on_submit=True):
         rule_name = st.text_input("Nome da regra")
